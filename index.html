@@ -253,6 +253,7 @@
     <div class="grow"></div>
     <div class="stack">
       <button class="btn gold" id="start">Start a table</button>
+      <button class="btn red" id="startDrink" style="margin-top:10px">Drinking game</button>
       <p class="note">One phone. Hidden title. Buff only pays if the typed title hits.</p>
     </div>
   </section>
@@ -336,6 +337,24 @@
     <p class="tiny">Buff = you believe that title. Bluff = you don’t.</p>
   </section>
 
+  <section class="screen" id="drinkInfo">
+    <p class="who">Drinking game</p>
+    <h2 class="name">Drink responsibly</h2>
+    <p class="note" style="font-size:18px">Coke or water is fine too!</p>
+    <p class="note">Everything is counted in sips. Sip whatever you like, or skip a sip anytime.</p>
+    <div class="grow"></div>
+    <button class="btn gold" id="drinkGo">Got it, start a table</button>
+    <button class="btn ghost" id="drinkBack" style="margin-top:10px">Back</button>
+  </section>
+
+  <section class="screen" id="everyone">
+    <p class="who">Surprise card</p>
+    <div class="reveal-title">EVERYONE DRINKS</div>
+    <p class="note" style="font-size:18px">Everybody takes a sip. Water or Coke counts.</p>
+    <div class="grow"></div>
+    <button class="btn gold" id="everyoneNext">Next reel</button>
+  </section>
+
   <section class="screen" id="reveal">
     <p class="who">Reveal</p>
     <div class="reveal-title" id="trueTitle">—</div>
@@ -343,6 +362,7 @@
     <p class="note" id="typedLine"></p>
     <p class="note" id="scoreNote"></p>
     <table class="scores" id="scoreTable"></table>
+    <div id="drinkBox" class="note" style="display:none;border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:16px;line-height:1.4"></div>
     <button class="btn red" id="luckyBtn" style="display:none;margin-bottom:10px">Lucky Bluff happened</button>
     <div class="grow"></div>
     <button class="btn gold" id="nextReel">Next reel</button>
@@ -376,7 +396,11 @@ const state = {
   voter: 0,
   timer: null,
   lucky: false,
-  files: {}
+  files: {},
+  drink: false,
+  snap: [],
+  bigRound: false,
+  everyoneCards: []
 };
 
 const $ = (id) => document.getElementById(id);
@@ -438,6 +462,8 @@ function startTurn() {
   state.typed = "";
   state.votes = [];
   state.lucky = false;
+  state.snap = state.players.map((p) => p.score);
+  state.bigRound = Math.random() < 0.25;
   show("turn");
 }
 function runLeader() {
@@ -533,6 +559,29 @@ function paintScores(note) {
     .map((p) => `<tr><td>${esc(p.name)}</td><td>${p.score}</td></tr>`)
     .join("");
 }
+function paintDrinks() {
+  const box = $("drinkBox");
+  if (!state.drink) { box.style.display = "none"; return; }
+  const n = state.players.length;
+  const speaker = state.players[state.speaker];
+  const lines = [];
+  const bluffCalledByAll = state.lock === "bluff" && state.votes.length > 0 && state.votes.every((v) => v.vote === "bluff");
+  const buffMiss = state.lock === "buff" && !hits(currentCard(), state.typed);
+  if (!state.lucky && (buffMiss || bluffCalledByAll)) {
+    lines.push(speaker.name + " takes 1 sip.");
+  }
+  const deltas = state.players.map((p, i) => p.score - state.snap[i]);
+  const top = Math.max(...deltas);
+  if (deltas[state.speaker] > 0 && deltas[state.speaker] === top) {
+    const base = Math.max(1, Math.round(n / 3));
+    const big = Math.max(base, Math.round((2 * n) / 3));
+    const amt = state.bigRound ? big : base;
+    lines.push(speaker.name + " led the round and hands out " + amt + " sip" + (amt === 1 ? "" : "s") + (state.bigRound ? " (big round!)" : "") + ".");
+  }
+  if (!lines.length) { box.style.display = "none"; return; }
+  box.innerHTML = "<strong style=\"color:var(--gold)\">SIPS</strong><br>" + lines.map(esc).join("<br>");
+  box.style.display = "block";
+}
 function luckyBluff() {
   if (state.lock !== "bluff" || state.lucky) return;
   const speaker = state.players[state.speaker];
@@ -546,6 +595,7 @@ function luckyBluff() {
   $("hitTag").className = "hit no";
   $("luckyBtn").style.display = "none";
   paintScores("Speaker −1. Buff voters +1. Bluff callers keep the point they already earned.");
+  paintDrinks();
 }
 function reveal() {
   const card = currentCard();
@@ -581,6 +631,7 @@ function reveal() {
     : "No title locked. If they said this movie out loud, hit Lucky Bluff.";
   $("luckyBtn").style.display = state.lock === "bluff" ? "block" : "none";
   paintScores(note);
+  paintDrinks();
   $("nextReel").textContent = state.card + 1 >= state.deck.length ? "Final scores" : "Next reel";
   show("reveal");
 }
@@ -593,20 +644,28 @@ function finish() {
   $("hitTag").className = "hit yes";
   $("typedLine").textContent = "First to the projector.";
   $("luckyBtn").style.display = "none";
+  $("drinkBox").style.display = "none";
   paintScores("");
   $("scoreTable").innerHTML = ranked.map((p) => `<tr><td>${esc(p.name)}</td><td>${p.score}</td></tr>`).join("");
   $("nextReel").textContent = "Play again";
   $("nextReel").onclick = () => location.reload();
   show("reveal");
 }
+function advance() {
+  state.card += 1;
+  state.speaker = (state.speaker + 1) % state.players.length;
+  startTurn();
+}
 function next() {
   if (state.card + 1 >= state.deck.length) {
     finish();
     return;
   }
-  state.card += 1;
-  state.speaker = (state.speaker + 1) % state.players.length;
-  startTurn();
+  if (state.drink && state.everyoneCards.includes(state.card)) {
+    show("everyone");
+    return;
+  }
+  advance();
 }
 
 function leaveSplash() {
@@ -670,7 +729,11 @@ document.addEventListener("pointerdown", (e) => {
   v.play().then(() => { started = true; hint.textContent = "Tap to skip"; }).catch(() => {});
 })();
 
-$("start").onclick = () => { renderNames(); show("setup"); };
+$("start").onclick = () => { state.drink = false; renderNames(); show("setup"); };
+$("startDrink").onclick = () => show("drinkInfo");
+$("drinkBack").onclick = () => show("home");
+$("drinkGo").onclick = () => { state.drink = true; renderNames(); show("setup"); };
+$("everyoneNext").onclick = advance;
 $("count").onchange = renderNames;
 $("musicBtn").onclick = (e) => {
   e.stopPropagation();
@@ -688,6 +751,12 @@ $("deal").onclick = () => {
   state.deck = shuffle(DECK);
   state.card = 0;
   state.speaker = 0;
+  const picks = [];
+  while (picks.length < 2) {
+    const r = Math.floor(Math.random() * (DECK.length - 1));
+    if (!picks.includes(r)) picks.push(r);
+  }
+  state.everyoneCards = picks;
   startTurn();
 };
 $("playClip").onclick = runLeader;
