@@ -331,6 +331,8 @@
       <button class="choice buff" data-vote="buff">BUFF</button>
       <button class="choice bluff" data-vote="bluff">BLUFF</button>
     </div>
+    <video id="replay" playsinline controls preload="none" style="display:none;width:100%;max-height:260px;border-radius:8px;background:#000;margin-top:16px"></video>
+    <button class="btn ghost" id="replayBtn" style="margin-top:14px">Watch the clip again</button>
     <div class="grow"></div>
     <p class="tiny">Buff = you believe that title. Bluff = you don’t.</p>
   </section>
@@ -496,9 +498,28 @@ function passToVoter() {
 function openVote() {
   $("voterName").textContent = state.players[state.voter].name;
   $("voteNote").textContent = "Do you believe " + state.players[state.speaker].name + " named the movie?";
+  stopReplay();
   show("vote");
 }
+function stopReplay() {
+  const v = $("replay");
+  v.pause();
+  v.removeAttribute("src");
+  v.load();
+  v.style.display = "none";
+  $("replayBtn").textContent = "Watch the clip again";
+}
+function toggleReplay() {
+  const v = $("replay");
+  if (v.style.display === "block") { stopReplay(); return; }
+  v.src = currentCard().clip;
+  v.style.display = "block";
+  v.load();
+  v.play().catch(() => {});
+  $("replayBtn").textContent = "Hide the clip";
+}
 function castVote(vote) {
+  stopReplay();
   state.votes.push({ player: state.voter, vote });
   state.voter = (state.voter + 1) % state.players.length;
   if (state.voter === state.speaker) state.voter = (state.voter + 1) % state.players.length;
@@ -621,6 +642,7 @@ document.querySelectorAll("[data-vote]").forEach((btn) => {
   btn.onclick = () => castVote(btn.dataset.vote);
 });
 $("luckyBtn").onclick = luckyBluff;
+$("replayBtn").onclick = toggleReplay;
 $("nextReel").onclick = next;
 </script>
 </body>
