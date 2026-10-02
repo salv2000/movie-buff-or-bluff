@@ -302,7 +302,7 @@
   <section class="screen" id="lock">
     <p class="who">Speaker locks</p>
     <h2 class="name" id="lockName">—</h2>
-    <p class="note">Type the title you just said. The room does not see it.</p>
+    <p class="note">Type the movie title you just said, real or bluff. Voters will see it on their screens.</p>
     <div class="row2" style="margin:16px 0">
       <button class="choice buff" id="pickBuff" type="button">BUFF</button>
       <button class="choice bluff" id="pickBluff" type="button">BLUFF</button>
@@ -363,7 +363,6 @@
     <p class="note" id="scoreNote"></p>
     <table class="scores" id="scoreTable"></table>
     <div id="drinkBox" class="note" style="display:none;border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:16px;line-height:1.4"></div>
-    <button class="btn red" id="luckyBtn" style="display:none;margin-bottom:10px">Lucky Bluff happened</button>
     <div class="grow"></div>
     <button class="btn gold" id="nextReel">Next reel</button>
   </section>
@@ -497,7 +496,7 @@ function openLock() {
   $("typed").value = "";
   $("pickBuff").classList.remove("on");
   $("pickBluff").classList.remove("on");
-  $("titleField").style.display = "none";
+  $("titleField").style.display = "flex";
   $("lockIn").disabled = true;
   state.lock = null;
   show("lock");
@@ -506,8 +505,7 @@ function setLock(kind) {
   state.lock = kind;
   $("pickBuff").classList.toggle("on", kind === "buff");
   $("pickBluff").classList.toggle("on", kind === "bluff");
-  $("titleField").style.display = kind === "buff" ? "flex" : "none";
-  $("lockIn").disabled = kind === "buff" ? !$("typed").value.trim() : false;
+  $("lockIn").disabled = !$("typed").value.trim();
 }
 function beginVotes() {
   state.typed = $("typed").value.trim();
@@ -520,13 +518,13 @@ function passToVoter() {
     return;
   }
   $("passTo").textContent = "Pass to " + state.players[state.voter].name;
-  $("passNote").textContent = "Buff or Bluff only. No title on the next screen.";
+  $("passNote").textContent = "Only they should see the next screen.";
   $("gotIt").onclick = () => openVote();
   show("pass");
 }
 function openVote() {
   $("voterName").textContent = state.players[state.voter].name;
-  $("voteNote").textContent = "Do you believe " + state.players[state.speaker].name + " named the movie?";
+  $("voteNote").textContent = state.players[state.speaker].name + " says this movie is \u201c" + state.typed + "\u201d. Do you believe them?";
   stopReplay();
   show("vote");
 }
@@ -586,21 +584,6 @@ function paintDrinks() {
   box.innerHTML = "<strong style=\"color:var(--gold)\">SIPS</strong><br>" + lines.map(esc).join("<br>");
   box.style.display = "block";
 }
-function luckyBluff() {
-  if (state.lock !== "bluff" || state.lucky) return;
-  const speaker = state.players[state.speaker];
-  state.votes.forEach((v) => {
-    if (v.vote === "buff") speaker.score -= 1;
-    if (v.vote === "buff") state.players[v.player].score += 1;
-  });
-  speaker.score -= 1;
-  state.lucky = true;
-  $("hitTag").textContent = "LUCKY BLUFF";
-  $("hitTag").className = "hit no";
-  $("luckyBtn").style.display = "none";
-  paintScores("Speaker −1. Buff voters +1. Bluff callers keep the point they already earned.");
-  paintDrinks();
-}
 function reveal() {
   const card = currentCard();
   const speaker = state.players[state.speaker];
@@ -620,6 +603,13 @@ function reveal() {
       if (v.vote === "bluff") state.players[v.player].score += 1;
     });
     note = "Miss. Buff points gone. Bluff callers score.";
+  } else if (hits(card, state.typed)) {
+    state.lucky = true;
+    speaker.score -= 1;
+    state.votes.forEach((v) => {
+      state.players[v.player].score += 1;
+    });
+    note = "Lucky Bluff! " + speaker.name + " locked Bluff but typed the real movie. Speaker −1. Buff voters +1. Bluff callers +1.";
   } else {
     state.votes.forEach((v) => {
       if (v.vote === "buff") speaker.score += 1;
@@ -628,12 +618,9 @@ function reveal() {
     note = speaker.name + " locked Bluff. Callers +1. Believers paid the performance.";
   }
   $("trueTitle").textContent = card.title;
-  $("hitTag").textContent = state.lock === "bluff" ? "BLUFF" : (match ? "HIT" : "MISS");
+  $("hitTag").textContent = state.lock === "bluff" ? (state.lucky ? "LUCKY BLUFF" : "BLUFF") : (match ? "HIT" : "MISS");
   $("hitTag").className = "hit " + (state.lock === "buff" && match ? "yes" : "no");
-  $("typedLine").textContent = state.lock === "buff"
-    ? "Typed: " + (state.typed || "—")
-    : "No title locked. If they said this movie out loud, hit Lucky Bluff.";
-  $("luckyBtn").style.display = state.lock === "bluff" ? "block" : "none";
+  $("typedLine").textContent = "Typed: " + (state.typed || "—");
   paintScores(note);
   paintDrinks();
   $("nextReel").textContent = state.card + 1 >= state.deck.length ? "Final scores" : "Next reel";
@@ -647,7 +634,6 @@ function finish() {
   $("hitTag").textContent = winners.length > 1 ? "TIE" : "WINS";
   $("hitTag").className = "hit yes";
   $("typedLine").textContent = "First to the projector.";
-  $("luckyBtn").style.display = "none";
   $("drinkBox").style.display = "none";
   paintScores("");
   $("scoreTable").innerHTML = ranked.map((p) => `<tr><td>${esc(p.name)}</td><td>${p.score}</td></tr>`).join("");
@@ -771,13 +757,12 @@ $("skipLeader").onclick = openLock;
 $("pickBuff").onclick = () => setLock("buff");
 $("pickBluff").onclick = () => setLock("bluff");
 $("typed").oninput = () => {
-  if (state.lock === "buff") $("lockIn").disabled = !$("typed").value.trim();
+  $("lockIn").disabled = !state.lock || !$("typed").value.trim();
 };
 $("lockIn").onclick = beginVotes;
 document.querySelectorAll("[data-vote]").forEach((btn) => {
   btn.onclick = () => castVote(btn.dataset.vote);
 });
-$("luckyBtn").onclick = luckyBluff;
 $("replayBtn").onclick = toggleReplay;
 $("nextReel").onclick = next;
 </script>
