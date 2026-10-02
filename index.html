@@ -196,6 +196,9 @@
   .scores { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
   .scores td { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 18px; }
   .scores td:last-child { text-align: right; font-weight: 800; }
+  .rules { color: var(--cream); font-size: 15px; line-height: 1.45; margin: 8px 0 0; padding-left: 20px; text-align: left; }
+  .rules li { margin-bottom: 8px; }
+  .rules strong { color: var(--gold); }
   .note { color: var(--cream-dim); font-size: 14px; line-height: 1.4; text-align: center; }
   .tiny { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-dim); text-align: center; }
   #splash {
@@ -254,6 +257,7 @@
     <div class="stack">
       <button class="btn gold" id="start">Start game</button>
       <button class="btn red" id="startDrink" style="margin-top:10px">Drinking game</button>
+      <button class="btn ghost" id="howBtn" style="margin-top:10px">How to play</button>
       <p class="note">One phone. Hidden title. Buff only pays if the typed title hits.</p>
     </div>
   </section>
@@ -336,6 +340,33 @@
     <button class="btn ghost" id="replayBtn" style="margin-top:14px">Watch the clip again</button>
     <div class="grow"></div>
     <p class="tiny">Buff = you believe that title. Bluff = you don’t.</p>
+  </section>
+
+  <section class="screen" id="rules" style="overflow-y:auto;justify-content:flex-start">
+    <p class="who">Rules</p>
+    <h2 class="name">How to play</h2>
+    <ol class="rules">
+      <li><strong>Pass the phone.</strong> Every reel has a speaker. Everyone else covers their eyes while the speaker watches the clip, or watches along if you're feeling brave.</li>
+      <li><strong>The pitch.</strong> When the clip ends, the speaker has 10 seconds to sell their movie knowledge and superiority, or lie like a used car salesman to make everyone think they know it. At the end of the pitch they say the movie title they think it is out loud, then type it in. <strong>Always act confident!</strong></li>
+      <li><strong>Lock it in.</strong> The speaker picks Buff (I know this one) or Bluff (I'm making it up).</li>
+      <li><strong>The vote.</strong> The phone goes around. Each player sees what the speaker typed and votes Buff if they believe it, or Bluff if they think the speaker is lying.</li>
+      <li><strong>The reveal.</strong> The real movie shows up, and so do the scores.</li>
+    </ol>
+    <p class="who" style="margin-top:14px">Scoring</p>
+    <ul class="rules">
+      <li><strong>Buff and the title is right:</strong> the speaker gets +1, plus +1 for every player who believed them. The believers get +1 too.</li>
+      <li><strong>Buff and the title is wrong:</strong> every player who called Bluff gets +1.</li>
+      <li><strong>Bluff:</strong> the speaker gets +1 for every player who bought it, and every player who called Bluff gets +1.</li>
+      <li><strong>Lucky Bluff:</strong> the speaker locked Bluff but accidentally typed the real movie. The speaker gets -1, and everyone else gets +1.</li>
+    </ul>
+    <p class="who" style="margin-top:14px">Drinking game</p>
+    <ul class="rules">
+      <li>The speaker takes a sip on a miss, or when everyone calls their bluff.</li>
+      <li>The speaker hands out sips when they win the round.</li>
+      <li>Every so often a surprise card makes everyone drink.</li>
+      <li>Coke or water is fine too. Drink responsibly.</li>
+    </ul>
+    <button class="btn gold" id="rulesBack" style="margin-top:18px;flex-shrink:0">Back</button>
   </section>
 
   <section class="screen" id="drinkInfo">
@@ -725,6 +756,8 @@ document.addEventListener("pointerdown", (e) => {
 
 $("start").onclick = () => { state.drink = false; renderNames(); show("setup"); };
 $("startDrink").onclick = () => show("drinkInfo");
+$("howBtn").onclick = () => show("rules");
+$("rulesBack").onclick = () => show("home");
 $("drinkBack").onclick = () => show("home");
 $("drinkGo").onclick = () => { state.drink = true; renderNames(); show("setup"); };
 $("everyoneNext").onclick = advance;
