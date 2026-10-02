@@ -244,6 +244,7 @@
 <body>
 <div id="app">
   <audio id="theme" src="theme.mp3" loop preload="auto"></audio>
+  <button id="musicFab" type="button" style="display:none;position:fixed;top:10px;right:10px;z-index:50;background:rgba(0,0,0,.6);color:#f3ead6;border:1px solid rgba(243,234,214,.4);border-radius:14px;padding:5px 11px;font-size:12px;letter-spacing:.06em">♪ On</button>
   <section class="screen on" id="splash">
     <video id="introVid" src="intro.mp4" poster="intro-poster.jpg" playsinline preload="auto" style="width:100%;max-height:100%;object-fit:contain;background:#000"></video>
     <p class="splash-skip" id="splashHint">Tap to start</p>
@@ -435,10 +436,13 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
+var MUSIC_VOL = 0.4, musicOn = false, musicDuck = false, musicTarget = 0.4, musicTimer = null;
+var MUSIC_LEVELS = { home: 0.4, drinkInfo: 0.4, rules: 0.4, setup: 0.35, turn: 0, leader: 0, lock: 0.15, pass: 0.2, vote: 0.2, reveal: 0.3, everyone: 0.35 };
 function show(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("on"));
   $(id).classList.add("on");
   state.phase = id;
+  applyLevel();
 }
 function norm(s) {
   return (s || "")
@@ -567,6 +571,8 @@ function stopReplay() {
   v.load();
   v.style.display = "none";
   $("replayBtn").textContent = "Watch the clip again";
+  musicDuck = false;
+  applyLevel();
 }
 function toggleReplay() {
   const v = $("replay");
@@ -576,6 +582,8 @@ function toggleReplay() {
   v.load();
   v.play().catch(() => {});
   $("replayBtn").textContent = "Hide the clip";
+  musicDuck = true;
+  applyLevel();
 }
 function castVote(vote) {
   stopReplay();
@@ -697,41 +705,49 @@ function leaveSplash() {
   show("home");
   startMusic();
 }
-const MUSIC_VOL = 0.4;
-let musicOn = false;
 function startMusic() {
   const a = $("theme");
   if (musicOn && !a.paused) return;
   musicOn = true;
   a.muted = false;
-  a.volume = MUSIC_VOL;
+  a.volume = levelFor();
   a.play().then(setMusicLabel).catch(() => { $("musicBtn").textContent = "Music: tap to play"; });
 }
 function setMusicLabel() {
-  const a = $("theme");
-  $("musicBtn").textContent = (!a.paused) ? "Music: on (tap to mute)" : "Music: off (tap to play)";
+  $("musicBtn").textContent = musicOn ? "Music: on (tap to mute)" : "Music: off (tap to play)";
+  $("musicFab").textContent = musicOn ? "\u266A On" : "\u266A Off";
 }
-function stopMusic() {
-  musicOn = false;
+function levelFor() {
+  if (musicDuck) return 0;
+  const l = MUSIC_LEVELS[state.phase];
+  return l === undefined ? MUSIC_VOL : l;
+}
+function musicStep() {
   const a = $("theme");
-  let vol = a.volume;
-  const fade = setInterval(() => {
-    vol -= MUSIC_VOL / 12;
-    if (vol <= 0.01) {
-      clearInterval(fade);
-      a.pause();
-      a.currentTime = 0;
-      a.volume = MUSIC_VOL;
-    } else {
-      a.volume = vol;
-    }
-  }, 100);
+  const d = musicTarget - a.volume;
+  if (Math.abs(d) < 0.02) {
+    a.volume = musicTarget;
+    clearInterval(musicTimer);
+    if (musicTarget === 0) a.pause();
+    return;
+  }
+  a.volume = Math.max(0, Math.min(1, a.volume + Math.sign(d) * 0.03));
+}
+function applyLevel() {
+  const fab = $("musicFab");
+  if (fab) fab.style.display = (state.phase === "splash" || state.phase === "home") ? "none" : "block";
+  if (!musicOn) return;
+  const a = $("theme");
+  musicTarget = levelFor();
+  if (musicTarget > 0 && a.paused) a.play().then(setMusicLabel).catch(() => {});
+  clearInterval(musicTimer);
+  musicTimer = setInterval(musicStep, 100);
 }
 $("theme").addEventListener("play", setMusicLabel);
 $("theme").addEventListener("pause", setMusicLabel);
 document.addEventListener("pointerdown", (e) => {
-  if (e.target && e.target.id === "musicBtn") return;
-  if (musicOn && $("theme").paused) $("theme").play().then(setMusicLabel).catch(() => {});
+  if (e.target && (e.target.id === "musicBtn" || e.target.id === "musicFab")) return;
+  if (musicOn && musicTarget > 0 && $("theme").paused) $("theme").play().then(setMusicLabel).catch(() => {});
 });
 (function introSetup() {
   const v = $("introVid");
@@ -762,14 +778,16 @@ $("drinkBack").onclick = () => show("home");
 $("drinkGo").onclick = () => { state.drink = true; renderNames(); show("setup"); };
 $("everyoneNext").onclick = advance;
 $("count").onchange = renderNames;
-$("musicBtn").onclick = (e) => {
+function toggleMusic(e) {
   e.stopPropagation();
   const a = $("theme");
-  if (a.paused) { musicOn = true; a.volume = MUSIC_VOL; a.play().then(setMusicLabel).catch(() => {}); }
-  else { musicOn = false; a.pause(); setMusicLabel(); }
-};
+  if (musicOn) { musicOn = false; clearInterval(musicTimer); a.pause(); setMusicLabel(); }
+  else { musicOn = true; a.muted = false; a.volume = 0; setMusicLabel(); applyLevel(); }
+}
+$("musicBtn").onclick = toggleMusic;
+$("musicFab").onclick = toggleMusic;
 $("deal").onclick = () => {
-  stopMusic();
+  applyLevel();
   const inputs = [...$("names").querySelectorAll("input")];
   state.players = inputs.map((input, i) => ({
     name: input.value.trim() || ("Player " + (i + 1)),
