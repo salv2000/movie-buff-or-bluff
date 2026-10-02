@@ -252,7 +252,7 @@
     <button class="btn ghost" id="musicBtn" style="width:auto;align-self:center;padding:8px 18px;margin-top:10px">Music: tap to play</button>
     <div class="grow"></div>
     <div class="stack">
-      <button class="btn gold" id="start">Start a table</button>
+      <button class="btn gold" id="start">Start game</button>
       <button class="btn red" id="startDrink" style="margin-top:10px">Drinking game</button>
       <p class="note">One phone. Hidden title. Buff only pays if the typed title hits.</p>
     </div>
@@ -280,11 +280,11 @@
       <div class="slate">
         <div class="kicker" id="kind">Reel</div>
         <video id="clip" playsinline controls preload="auto" style="width:100%;max-height:300px;border-radius:8px;background:#000;margin-top:8px"></video>
-        <p class="note" id="clipStatus">Play the clip in the box, then start the countdown.</p>
+        <p class="note" id="clipStatus">The clip plays on its own. The countdown starts when it ends.</p>
       </div>
     </div>
     <div class="grow"></div>
-    <button class="btn gold" id="playClip">Start the countdown</button>
+    <button class="btn gold" id="playClip">Skip to countdown</button>
   </section>
 
   <section class="screen" id="leader">
@@ -343,7 +343,7 @@
     <p class="note" style="font-size:18px">Coke or water is fine too!</p>
     <p class="note">Everything is counted in sips. Sip whatever you like, or skip a sip anytime.</p>
     <div class="grow"></div>
-    <button class="btn gold" id="drinkGo">Got it, start a table</button>
+    <button class="btn gold" id="drinkGo">Got it, start the game</button>
     <button class="btn ghost" id="drinkBack" style="margin-top:10px">Back</button>
   </section>
 
@@ -465,6 +465,10 @@ function startTurn() {
   state.snap = state.players.map((p) => p.score);
   state.bigRound = Math.random() < 0.25;
   show("turn");
+  clip.onended = () => { if (state.phase === "turn") startCountdown(); };
+  $("clipStatus").textContent = "The clip plays on its own. The countdown starts when it ends.";
+  const pp = clip.play();
+  if (pp && pp.catch) pp.catch(() => { $("clipStatus").textContent = "Tap play on the clip. The countdown starts when it ends."; });
 }
 function runLeader() {
   startCountdown();
