@@ -240,6 +240,7 @@
 </head>
 <body>
 <div id="app">
+  <audio id="theme" src="theme.mp3" loop preload="auto"></audio>
   <section class="screen on" id="splash">
     <video id="introVid" src="intro.mp4" poster="intro-poster.jpg" playsinline preload="auto" style="width:100%;max-height:100%;object-fit:contain;background:#000"></video>
     <p class="splash-skip" id="splashHint">Tap to start</p>
@@ -612,7 +613,36 @@ function leaveSplash() {
   const v = $("introVid");
   v.pause();
   show("home");
+  startMusic();
 }
+const MUSIC_VOL = 0.4;
+let musicOn = false;
+function startMusic() {
+  const a = $("theme");
+  if (musicOn && !a.paused) return;
+  musicOn = true;
+  a.volume = MUSIC_VOL;
+  a.play().catch(() => {});
+}
+function stopMusic() {
+  musicOn = false;
+  const a = $("theme");
+  let vol = a.volume;
+  const fade = setInterval(() => {
+    vol -= MUSIC_VOL / 12;
+    if (vol <= 0.01) {
+      clearInterval(fade);
+      a.pause();
+      a.currentTime = 0;
+      a.volume = MUSIC_VOL;
+    } else {
+      a.volume = vol;
+    }
+  }, 100);
+}
+document.addEventListener("pointerdown", () => {
+  if (musicOn && $("theme").paused) $("theme").play().catch(() => {});
+});
 (function introSetup() {
   const v = $("introVid");
   const hint = $("splashHint");
@@ -634,6 +664,7 @@ function leaveSplash() {
 $("start").onclick = () => { renderNames(); show("setup"); };
 $("count").onchange = renderNames;
 $("deal").onclick = () => {
+  stopMusic();
   const inputs = [...$("names").querySelectorAll("input")];
   state.players = inputs.map((input, i) => ({
     name: input.value.trim() || ("Player " + (i + 1)),
