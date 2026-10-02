@@ -181,6 +181,12 @@
   .choice.buff { background: var(--cream); color: var(--ink); }
   .choice.bluff { background: transparent; color: var(--cream); }
   .choice.on { outline: 3px solid var(--gold); }
+  @keyframes glowpulse {
+    0%, 100% { box-shadow: 0 0 6px 1px rgba(214,178,94,.45); }
+    50% { box-shadow: 0 0 20px 6px rgba(214,178,94,.95); }
+  }
+  .choice.glow { animation: glowpulse 1.4s ease-in-out infinite; }
+  .pickhint { color: var(--gold); font-size: 15px; text-align: center; margin: -4px 0 8px; letter-spacing: .04em; }
   .reveal-title {
     font-family: "Palatino Linotype", Palatino, Georgia, serif;
     font-style: italic;
@@ -309,9 +315,10 @@
     <h2 class="name" id="lockName">—</h2>
     <p class="note">Type the movie title you just said, real or bluff. Voters will see it on their screens.</p>
     <div class="row2" style="margin:16px 0">
-      <button class="choice buff" id="pickBuff" type="button">BUFF</button>
-      <button class="choice bluff" id="pickBluff" type="button">BLUFF</button>
+      <button class="choice buff glow" id="pickBuff" type="button">BUFF</button>
+      <button class="choice bluff glow" id="pickBluff" type="button">BLUFF</button>
     </div>
+    <p class="pickhint" id="pickHint">Please select one</p>
     <label class="field" id="titleField">Title you named
       <input id="typed" type="text" autocomplete="off" placeholder="Enter movie title here" />
     </label>
@@ -334,9 +341,10 @@
     <p class="note" id="voteNote">Did they name the movie?</p>
     <p class="tiny" style="text-align:center;margin-top:6px">Buff if you do. Bluff if they're lying.</p>
     <div class="row2" style="margin-top:18px">
-      <button class="choice buff" data-vote="buff">BUFF</button>
-      <button class="choice bluff" data-vote="bluff">BLUFF</button>
+      <button class="choice buff glow" data-vote="buff">BUFF</button>
+      <button class="choice bluff glow" data-vote="bluff">BLUFF</button>
     </div>
+    <p class="pickhint" style="margin-top:12px">Please select one</p>
     <video id="replay" playsinline controls preload="none" style="display:none;width:100%;max-height:260px;border-radius:8px;background:#000;margin-top:16px"></video>
     <button class="btn ghost" id="replayBtn" style="margin-top:14px">Watch the clip again</button>
     <div class="grow"></div>
@@ -532,6 +540,9 @@ function openLock() {
   $("typed").value = "";
   $("pickBuff").classList.remove("on");
   $("pickBluff").classList.remove("on");
+  $("pickBuff").classList.add("glow");
+  $("pickBluff").classList.add("glow");
+  $("pickHint").style.display = "block";
   $("titleField").style.display = "flex";
   $("lockIn").disabled = true;
   state.lock = null;
@@ -539,6 +550,9 @@ function openLock() {
 }
 function setLock(kind) {
   state.lock = kind;
+  $("pickBuff").classList.remove("glow");
+  $("pickBluff").classList.remove("glow");
+  $("pickHint").style.display = "none";
   $("pickBuff").classList.toggle("on", kind === "buff");
   $("pickBluff").classList.toggle("on", kind === "bluff");
   $("lockIn").disabled = !$("typed").value.trim();
