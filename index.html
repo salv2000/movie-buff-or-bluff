@@ -685,6 +685,7 @@ function startMusic() {
   const a = $("theme");
   if (musicOn && !a.paused) return;
   musicOn = true;
+  a.muted = false;
   a.volume = MUSIC_VOL;
   a.play().then(setMusicLabel).catch(() => { $("musicBtn").textContent = "Music: tap to play"; });
 }
@@ -708,6 +709,8 @@ function stopMusic() {
     }
   }, 100);
 }
+$("theme").addEventListener("play", setMusicLabel);
+$("theme").addEventListener("pause", setMusicLabel);
 document.addEventListener("pointerdown", (e) => {
   if (e.target && e.target.id === "musicBtn") return;
   if (musicOn && $("theme").paused) $("theme").play().then(setMusicLabel).catch(() => {});
@@ -721,7 +724,7 @@ document.addEventListener("pointerdown", (e) => {
   $("splash").onclick = () => {
     const t = $("theme");
     t.muted = true;
-    t.play().then(() => { t.pause(); t.currentTime = 0; t.muted = false; }).catch(() => { t.muted = false; });
+    t.play().then(() => { if (!musicOn) { t.pause(); t.currentTime = 0; } t.muted = false; setMusicLabel(); }).catch(() => { t.muted = false; });
     if (!started) {
       started = true;
       hint.textContent = "Tap to skip";
