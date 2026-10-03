@@ -799,6 +799,40 @@ function next() {
   advance();
 }
 
+var ANNOUNCER_LINES = ["announcer/a01.mp3"];
+var ANNOUNCER_DUCK_LEVEL = 0.08, announcerDuck = false, announcerDone = false, announcerUnlocked = false, announcerPending = false;
+var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
+var announcerEl = new Audio();
+announcerEl.preload = "auto";
+document.addEventListener("pointerdown", () => {
+  if (announcerUnlocked) return;
+  announcerUnlocked = true;
+  announcerEl.src = SILENT_WAV;
+  announcerEl.play().then(() => { if (announcerEl.src === SILENT_WAV) announcerEl.pause(); }).catch(() => { announcerUnlocked = false; });
+  try { ANNOUNCER_LINES.forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
+});
+document.addEventListener("pointerdown", () => { if (announcerPending) { announcerPending = false; playAnnouncer(); } });
+function endAnnouncer() {
+  if (!announcerDuck) return;
+  announcerDuck = false;
+  applyLevel();
+}
+announcerEl.addEventListener("ended", endAnnouncer);
+announcerEl.addEventListener("error", endAnnouncer);
+function playAnnouncer() {
+  if (announcerDone) return;
+  try {
+    announcerDone = true;
+    announcerEl.pause();
+    announcerEl.src = ANNOUNCER_LINES[Math.floor(Math.random() * ANNOUNCER_LINES.length)];
+    announcerEl.currentTime = 0;
+    announcerEl.volume = 1;
+    announcerDuck = true;
+    applyLevel();
+    const pr = announcerEl.play();
+    if (pr && pr.catch) pr.catch(() => { announcerDone = false; announcerPending = true; endAnnouncer(); });
+  } catch (e) { announcerDone = false; endAnnouncer(); }
+}
 function leaveSplash() {
   if (state.phase !== "splash") return;
   const v = $("introVid");
@@ -813,6 +847,7 @@ function leaveLogo() {
   if (state.phase !== "logo") return;
   $("logoVid").pause();
   show("home");
+  playAnnouncer();
   startMusic();
 }
 function startMusic() {
@@ -830,7 +865,8 @@ function setMusicLabel() {
 function levelFor() {
   if (musicDuck) return 0;
   const l = MUSIC_LEVELS[state.phase];
-  return l === undefined ? MUSIC_VOL : l;
+  const base = l === undefined ? MUSIC_VOL : l;
+  return announcerDuck ? Math.min(base, ANNOUNCER_DUCK_LEVEL) : base;
 }
 function musicStep() {
   const a = $("theme");
