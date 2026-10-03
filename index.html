@@ -207,7 +207,7 @@
   .rules strong { color: var(--gold); }
   .note { color: var(--cream-dim); font-size: 14px; line-height: 1.4; text-align: center; }
   .tiny { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-dim); text-align: center; }
-  #splash {
+  #splash, #logo {
     justify-content: center;
     align-items: center;
     padding: 0;
@@ -254,6 +254,11 @@
   <section class="screen on" id="splash">
     <video id="introVid" src="intro.mp4" poster="intro-poster.jpg" playsinline preload="auto" style="width:100%;max-height:100%;object-fit:contain;background:#000"></video>
     <p class="splash-skip" id="splashHint">Tap to start</p>
+  </section>
+
+  <section class="screen" id="logo">
+    <video id="logoVid" src="logo.mp4" playsinline preload="auto" style="width:100%;max-height:100%;object-fit:contain;background:#000"></video>
+    <p class="splash-skip" id="logoHint">Tap to skip</p>
   </section>
 
   <section class="screen" id="home">
@@ -762,6 +767,15 @@ function leaveSplash() {
   if (state.phase !== "splash") return;
   const v = $("introVid");
   v.pause();
+  show("logo");
+  const l = $("logoVid");
+  l.currentTime = 0;
+  $("logoHint").textContent = "Tap to skip";
+  l.play().catch(() => { $("logoHint").textContent = "Tap to start"; });
+}
+function leaveLogo() {
+  if (state.phase !== "logo") return;
+  $("logoVid").pause();
   show("home");
   startMusic();
 }
@@ -795,7 +809,7 @@ function musicStep() {
 }
 function applyLevel() {
   const fab = $("musicFab");
-  if (fab) fab.style.display = (state.phase === "splash" || state.phase === "home") ? "none" : "block";
+  if (fab) fab.style.display = (state.phase === "splash" || state.phase === "logo" || state.phase === "home") ? "none" : "block";
   if (!musicOn) return;
   const a = $("theme");
   musicTarget = levelFor();
@@ -830,6 +844,13 @@ document.addEventListener("pointerdown", (e) => {
   v.play().then(() => { started = true; hint.textContent = "Tap to skip"; }).catch(() => {});
 })();
 
+$("logoVid").addEventListener("ended", leaveLogo);
+$("logoVid").addEventListener("error", () => setTimeout(leaveLogo, 800));
+$("logo").onclick = () => {
+  const l = $("logoVid");
+  if (l.paused && !l.ended) { l.play().then(() => { $("logoHint").textContent = "Tap to skip"; }).catch(leaveLogo); }
+  else leaveLogo();
+};
 $("start").onclick = () => { state.drink = false; renderNames(); show("setup"); };
 $("startDrink").onclick = () => show("drinkInfo");
 $("howBtn").onclick = () => show("rules");
