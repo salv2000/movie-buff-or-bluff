@@ -807,6 +807,8 @@ function finish() {
 function advance() {
   state.card += 1;
   state.speaker = (state.speaker + 1) % state.players.length;
+  playButtonLine(ANNOUNCER_NEXT_SPEAKER);
+  announcerHold = true;
   startTurn();
 }
 function next() {
@@ -824,6 +826,7 @@ function next() {
 var ANNOUNCER_LINES = ["announcer/a01.mp3"];
 var ANNOUNCER_START = ["announcer/a02.mp3", "announcer/a05.mp3"];
 var ANNOUNCER_ROUND_START = ["announcer/a06.mp3"];
+var ANNOUNCER_NEXT_SPEAKER = ["announcer/a07.mp3"];
 var announcerHold = false, announcerOnEnd = null;
 var ANNOUNCER_DRINK = ["announcer/a03.mp3"];
 var ANNOUNCER_DUCK_LEVEL = 0.08, announcerDuck = false, announcerDone = false, announcerUnlocked = false, announcerPending = false;
@@ -835,7 +838,7 @@ document.addEventListener("pointerdown", () => {
   announcerUnlocked = true;
   announcerEl.src = SILENT_WAV;
   announcerEl.play().then(() => { if (announcerEl.src === SILENT_WAV) announcerEl.pause(); }).catch(() => { announcerUnlocked = false; });
-  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_ROUND_START, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
+  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_ROUND_START, ANNOUNCER_NEXT_SPEAKER, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
 });
 document.addEventListener("pointerdown", () => { if (announcerPending) { announcerPending = false; playAnnouncer(); } });
 function endAnnouncer() {
