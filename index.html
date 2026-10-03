@@ -314,14 +314,15 @@
     <p class="who">Speaker locks</p>
     <h2 class="name" id="lockName">—</h2>
     <p class="note">Type the movie title you just said, real or bluff. Voters will see it on their screens.</p>
+    <label class="field" id="titleField">Title you named
+      <input id="typed" type="text" autocomplete="off" placeholder="Enter movie title here" />
+    </label>
+    <p class="note" style="margin:6px 0 0;font-size:16px;color:var(--cream)">Lock it in as a Buff or Bluff</p>
     <div class="row2" style="margin:16px 0">
       <button class="choice buff glow" id="pickBuff" type="button">BUFF</button>
       <button class="choice bluff glow" id="pickBluff" type="button">BLUFF</button>
     </div>
     <p class="pickhint" id="pickHint">Please select one</p>
-    <label class="field" id="titleField">Title you named
-      <input id="typed" type="text" autocomplete="off" placeholder="Enter movie title here" />
-    </label>
     <div class="grow"></div>
     <button class="btn gold" id="lockIn" disabled>Lock and pass</button>
   </section>
