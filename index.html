@@ -790,6 +790,7 @@ function reveal() {
   show("reveal");
 }
 function finish() {
+  playButtonLine(ANNOUNCER_GAME_OVER, [{ list: ANNOUNCER_FINAL_VOTES, phase: "reveal" }]);
   const ranked = state.players.slice().sort((a, b) => b.score - a.score);
   const top = ranked[0].score;
   const winners = ranked.filter((p) => p.score === top).map((p) => p.name);
@@ -807,7 +808,7 @@ function finish() {
 function advance() {
   state.card += 1;
   state.speaker = (state.speaker + 1) % state.players.length;
-  playButtonLine(ANNOUNCER_NEXT_SPEAKER);
+  playButtonLine(state.card % state.players.length === 0 ? ANNOUNCER_NEW_ROUND : ANNOUNCER_NEXT_SPEAKER);
   announcerHold = true;
   startTurn();
 }
@@ -826,7 +827,12 @@ function next() {
 var ANNOUNCER_LINES = ["announcer/a01.mp3"];
 var ANNOUNCER_START = ["announcer/a02.mp3", "announcer/a05.mp3"];
 var ANNOUNCER_ROUND_START = ["announcer/a06.mp3"];
-var ANNOUNCER_NEXT_SPEAKER = ["announcer/a07.mp3"];
+var ANNOUNCER_NEXT_SPEAKER = ["announcer/a07.mp3", "announcer/a12.mp3"];
+var ANNOUNCER_NEW_ROUND = ["announcer/a08.mp3"];
+var ANNOUNCER_GAME_OVER = ["announcer/a09.mp3"];
+var ANNOUNCER_FINAL_VOTES = ["announcer/a10.mp3"];
+var ANNOUNCER_DRINK_INFO = ["announcer/a11.mp3"];
+var announcerChain = [];
 var announcerHold = false, announcerOnEnd = null;
 var ANNOUNCER_DRINK = ["announcer/a03.mp3"];
 var ANNOUNCER_DUCK_LEVEL = 0.08, announcerDuck = false, announcerDone = false, announcerUnlocked = false, announcerPending = false;
@@ -838,10 +844,15 @@ document.addEventListener("pointerdown", () => {
   announcerUnlocked = true;
   announcerEl.src = SILENT_WAV;
   announcerEl.play().then(() => { if (announcerEl.src === SILENT_WAV) announcerEl.pause(); }).catch(() => { announcerUnlocked = false; });
-  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_ROUND_START, ANNOUNCER_NEXT_SPEAKER, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
+  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_ROUND_START, ANNOUNCER_NEXT_SPEAKER, ANNOUNCER_NEW_ROUND, ANNOUNCER_GAME_OVER, ANNOUNCER_FINAL_VOTES, ANNOUNCER_DRINK_INFO, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
 });
 document.addEventListener("pointerdown", () => { if (announcerPending) { announcerPending = false; playAnnouncer(); } });
 function endAnnouncer() {
+  if (announcerChain.length) {
+    const nx = announcerChain.shift();
+    if (!nx.phase || state.phase === nx.phase) { playLine(nx.list, true, true); return; }
+    announcerChain = [];
+  }
   if (announcerOnEnd) { const f = announcerOnEnd; announcerOnEnd = null; f(); }
   if (!announcerDuck) return;
   announcerDuck = false;
@@ -849,18 +860,20 @@ function endAnnouncer() {
 }
 announcerEl.addEventListener("ended", endAnnouncer);
 announcerEl.addEventListener("error", endAnnouncer);
-function playButtonLine(list) {
+function playButtonLine(list, chain) {
   announcerPending = false;
   announcerDone = true;
   playLine(list, true);
+  announcerChain = chain || [];
 }
 function playAnnouncer() {
   if (announcerDone) return;
   playLine(ANNOUNCER_LINES);
 }
 var announcerSeq = 0;
-function playLine(list, fromButton) {
+function playLine(list, fromButton, isChain) {
   const seq = ++announcerSeq;
+  if (!isChain) announcerChain = [];
   try {
     announcerDone = true;
     announcerEl.pause();
@@ -967,7 +980,7 @@ $("logo").onclick = () => {
   else leaveLogo();
 };
 $("start").onclick = () => { playButtonLine(ANNOUNCER_START); state.drink = false; renderNames(); show("setup"); };
-$("startDrink").onclick = () => { playButtonLine(ANNOUNCER_DRINK); show("drinkInfo"); };
+$("startDrink").onclick = () => { playButtonLine(ANNOUNCER_DRINK, [{ list: ANNOUNCER_DRINK_INFO, phase: "drinkInfo" }]); show("drinkInfo"); };
 $("howBtn").onclick = () => show("rules");
 $("rulesBack").onclick = () => show("home");
 $("drinkBack").onclick = () => show("home");
