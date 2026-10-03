@@ -281,6 +281,11 @@
     <label class="field">Players
       <input id="count" type="number" min="3" max="8" value="4" />
     </label>
+    <label class="field">Rounds
+      <input id="rounds" type="number" min="1" max="3" value="2" />
+    </label>
+    <p class="note" style="margin:4px 0 0">A round is how many times each player gets to be the speaker. Games with 7 or 8 players are limited to 2 rounds.</p>
+    <p class="tiny" id="clipCount" style="text-align:center"></p>
     <div class="players" id="names"></div>
     <div class="grow"></div>
     <button class="btn gold" id="deal">Deal the reels</button>
@@ -367,6 +372,11 @@
       <li><strong>The vote.</strong> The phone goes around. Each player sees what the speaker typed and votes Buff if they believe it, or Bluff if they think the speaker is lying.</li>
       <li><strong>The reveal.</strong> The real movie shows up, and so do the scores.</li>
     </ol>
+    <p class="who" style="margin-top:14px">Rounds</p>
+    <ul class="rules">
+      <li>A round is how many times each player gets to be the speaker. The default is 2 rounds. Games with 7 or 8 players are limited to 2 rounds.</li>
+      <li>Clips used = players × rounds. For example, 3 players is 6 clips and 8 players is 16 clips.</li>
+    </ul>
     <p class="who" style="margin-top:14px">Scoring</p>
     <ul class="rules">
       <li><strong>Buff and the title is right:</strong> the speaker gets +1, plus +1 for every player who believed them. The believers get +1 too.</li>
@@ -486,6 +496,29 @@ function renderNames() {
     input.value = prev[i] || "";
     box.appendChild(input);
   }
+}
+function getRounds() {
+  const n = Math.max(3, Math.min(8, Number($("count").value) || 4));
+  const cap = n > 6 ? 2 : 3;
+  return Math.max(1, Math.min(cap, Number($("rounds").value) || 2));
+}
+function updateClipCount() {
+  $("rounds").max = Math.max(3, Math.min(8, Number($("count").value) || 4)) > 6 ? 2 : 3;
+  if (Number($("rounds").value) > Number($("rounds").max)) $("rounds").value = $("rounds").max;
+  const n = Math.max(3, Math.min(8, Number($("count").value) || 4));
+  const total = n * getRounds();
+  $("clipCount").textContent = total + " clips this game";
+}
+function buildDeck(total) {
+  let deck = [];
+  let last = null;
+  while (deck.length < total) {
+    let batch = shuffle(DECK);
+    if (last && batch[0] === last && batch.length > 1) batch.push(batch.shift());
+    deck = deck.concat(batch);
+    last = deck[deck.length - 1];
+  }
+  return deck.slice(0, total);
 }
 function shuffle(list) {
   const a = list.slice();
@@ -867,6 +900,11 @@ function toggleMusic(e) {
 }
 $("musicBtn").onclick = toggleMusic;
 $("musicFab").onclick = toggleMusic;
+$("rounds").oninput = updateClipCount;
+$("rounds").onchange = () => { $("rounds").value = getRounds(); updateClipCount(); };
+$("count").addEventListener("input", updateClipCount);
+$("count").addEventListener("change", updateClipCount);
+updateClipCount();
 $("deal").onclick = () => {
   applyLevel();
   const inputs = [...$("names").querySelectorAll("input")];
@@ -874,12 +912,14 @@ $("deal").onclick = () => {
     name: input.value.trim() || ("Player " + (i + 1)),
     score: 0
   }));
-  state.deck = shuffle(DECK);
+  const rounds = getRounds();
+  state.deck = buildDeck(state.players.length * rounds);
   state.card = 0;
   state.speaker = 0;
   const picks = [];
-  while (picks.length < 2) {
-    const r = Math.floor(Math.random() * (DECK.length - 1));
+  const wantPicks = Math.max(1, Math.round(state.deck.length / 6));
+  while (picks.length < wantPicks && picks.length < state.deck.length - 1) {
+    const r = Math.floor(Math.random() * (state.deck.length - 1));
     if (!picks.includes(r)) picks.push(r);
   }
   state.everyoneCards = picks;
