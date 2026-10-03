@@ -552,8 +552,30 @@ function startTurn() {
   show("turn");
   clip.onended = () => { if (state.phase === "turn") startCountdown(); };
   $("clipStatus").textContent = "The clip plays on its own. The countdown starts when it ends.";
+  const failMsg = () => { $("clipStatus").textContent = "Tap play on the clip. The countdown starts when it ends."; };
+  if (announcerHold && announcerDuck) {
+    announcerHold = false;
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      announcerOnEnd = null;
+      if (state.phase !== "turn") { clip.muted = false; return; }
+      clip.muted = false;
+      clip.currentTime = 0;
+      const p2 = clip.play();
+      if (p2 && p2.catch) p2.catch(failMsg);
+    };
+    clip.muted = true;
+    const p1 = clip.play();
+    if (p1 && p1.then) p1.then(() => { if (!released) { clip.pause(); clip.currentTime = 0; } }).catch(() => { release(); });
+    announcerOnEnd = release;
+    setTimeout(release, 6000);
+    return;
+  }
+  announcerHold = false;
   const pp = clip.play();
-  if (pp && pp.catch) pp.catch(() => { $("clipStatus").textContent = "Tap play on the clip. The countdown starts when it ends."; });
+  if (pp && pp.catch) pp.catch(failMsg);
 }
 function runLeader() {
   startCountdown();
@@ -800,7 +822,9 @@ function next() {
 }
 
 var ANNOUNCER_LINES = ["announcer/a01.mp3"];
-var ANNOUNCER_START = ["announcer/a02.mp3", "announcer/a05.mp3", "announcer/a06.mp3"];
+var ANNOUNCER_START = ["announcer/a02.mp3", "announcer/a05.mp3"];
+var ANNOUNCER_ROUND_START = ["announcer/a06.mp3"];
+var announcerHold = false, announcerOnEnd = null;
 var ANNOUNCER_DRINK = ["announcer/a03.mp3"];
 var ANNOUNCER_DUCK_LEVEL = 0.08, announcerDuck = false, announcerDone = false, announcerUnlocked = false, announcerPending = false;
 var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
@@ -811,10 +835,11 @@ document.addEventListener("pointerdown", () => {
   announcerUnlocked = true;
   announcerEl.src = SILENT_WAV;
   announcerEl.play().then(() => { if (announcerEl.src === SILENT_WAV) announcerEl.pause(); }).catch(() => { announcerUnlocked = false; });
-  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
+  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_ROUND_START, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
 });
 document.addEventListener("pointerdown", () => { if (announcerPending) { announcerPending = false; playAnnouncer(); } });
 function endAnnouncer() {
+  if (announcerOnEnd) { const f = announcerOnEnd; announcerOnEnd = null; f(); }
   if (!announcerDuck) return;
   announcerDuck = false;
   applyLevel();
@@ -960,6 +985,8 @@ $("count").addEventListener("input", updateClipCount);
 $("count").addEventListener("change", updateClipCount);
 updateClipCount();
 $("deal").onclick = () => {
+  playButtonLine(ANNOUNCER_ROUND_START);
+  announcerHold = true;
   applyLevel();
   const inputs = [...$("names").querySelectorAll("input")];
   state.players = inputs.map((input, i) => ({
