@@ -800,6 +800,8 @@ function next() {
 }
 
 var ANNOUNCER_LINES = ["announcer/a01.mp3"];
+var ANNOUNCER_START = ["announcer/a02.mp3"];
+var ANNOUNCER_DRINK = ["announcer/a03.mp3"];
 var ANNOUNCER_DUCK_LEVEL = 0.08, announcerDuck = false, announcerDone = false, announcerUnlocked = false, announcerPending = false;
 var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
 var announcerEl = new Audio();
@@ -809,7 +811,7 @@ document.addEventListener("pointerdown", () => {
   announcerUnlocked = true;
   announcerEl.src = SILENT_WAV;
   announcerEl.play().then(() => { if (announcerEl.src === SILENT_WAV) announcerEl.pause(); }).catch(() => { announcerUnlocked = false; });
-  try { ANNOUNCER_LINES.forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
+  try { ANNOUNCER_LINES.concat(ANNOUNCER_START, ANNOUNCER_DRINK).forEach((u) => fetch(u).catch(() => {})); } catch (e) {}
 });
 document.addEventListener("pointerdown", () => { if (announcerPending) { announcerPending = false; playAnnouncer(); } });
 function endAnnouncer() {
@@ -819,19 +821,29 @@ function endAnnouncer() {
 }
 announcerEl.addEventListener("ended", endAnnouncer);
 announcerEl.addEventListener("error", endAnnouncer);
+function playButtonLine(list) {
+  announcerPending = false;
+  announcerDone = true;
+  playLine(list, true);
+}
 function playAnnouncer() {
   if (announcerDone) return;
+  playLine(ANNOUNCER_LINES);
+}
+var announcerSeq = 0;
+function playLine(list, fromButton) {
+  const seq = ++announcerSeq;
   try {
     announcerDone = true;
     announcerEl.pause();
-    announcerEl.src = ANNOUNCER_LINES[Math.floor(Math.random() * ANNOUNCER_LINES.length)];
+    announcerEl.src = list[Math.floor(Math.random() * list.length)];
     announcerEl.currentTime = 0;
     announcerEl.volume = 1;
     announcerDuck = true;
     applyLevel();
     const pr = announcerEl.play();
-    if (pr && pr.catch) pr.catch(() => { announcerDone = false; announcerPending = true; endAnnouncer(); });
-  } catch (e) { announcerDone = false; endAnnouncer(); }
+    if (pr && pr.catch) pr.catch(() => { if (seq !== announcerSeq) return; if (!fromButton) { announcerDone = false; announcerPending = true; } endAnnouncer(); });
+  } catch (e) { if (!fromButton) announcerDone = false; endAnnouncer(); }
 }
 function leaveSplash() {
   if (state.phase !== "splash") return;
@@ -923,8 +935,8 @@ $("logo").onclick = () => {
   if (l.paused && !l.ended) { l.play().then(() => { $("logoHint").textContent = "Tap to skip"; }).catch(leaveLogo); }
   else leaveLogo();
 };
-$("start").onclick = () => { state.drink = false; renderNames(); show("setup"); };
-$("startDrink").onclick = () => show("drinkInfo");
+$("start").onclick = () => { playButtonLine(ANNOUNCER_START); state.drink = false; renderNames(); show("setup"); };
+$("startDrink").onclick = () => { playButtonLine(ANNOUNCER_DRINK); show("drinkInfo"); };
 $("howBtn").onclick = () => show("rules");
 $("rulesBack").onclick = () => show("home");
 $("drinkBack").onclick = () => show("home");
