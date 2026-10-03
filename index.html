@@ -800,7 +800,7 @@ function next() {
 }
 
 var ANNOUNCER_LINES = ["announcer/a01.mp3"];
-var ANNOUNCER_START = ["announcer/a02.mp3"];
+var ANNOUNCER_START = ["announcer/a02.mp3", "announcer/a05.mp3", "announcer/a06.mp3"];
 var ANNOUNCER_DRINK = ["announcer/a03.mp3"];
 var ANNOUNCER_DUCK_LEVEL = 0.08, announcerDuck = false, announcerDone = false, announcerUnlocked = false, announcerPending = false;
 var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
@@ -836,7 +836,10 @@ function playLine(list, fromButton) {
   try {
     announcerDone = true;
     announcerEl.pause();
-    announcerEl.src = list[Math.floor(Math.random() * list.length)];
+    let pick = list[Math.floor(Math.random() * list.length)];
+    if (list.length > 1 && list.lastPick) { while (pick === list.lastPick) pick = list[Math.floor(Math.random() * list.length)]; }
+    list.lastPick = pick;
+    announcerEl.src = pick;
     announcerEl.currentTime = 0;
     announcerEl.volume = 1;
     announcerDuck = true;
