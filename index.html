@@ -208,6 +208,8 @@
   .note { color: var(--cream-dim); font-size: 14px; line-height: 1.4; text-align: center; }
   .note.pitch { color: var(--cream); font-size: 16px; font-weight: 600; margin: 4px 0 8px; }
   #voteNote { font-size: clamp(17px, 5.2vw, 20px); line-height: 1.35; overflow-wrap: anywhere; color: var(--cream); }
+  .credit { font-size: 11px; line-height: 1.35; color: var(--cream-dim); text-align: center; opacity: 0.75; margin: 16px 0 0; flex-shrink: 0; }
+  .credit a { color: inherit; }
   .tiny { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-dim); text-align: center; }
   #splash, #logo {
     justify-content: center;
@@ -251,7 +253,7 @@
 </head>
 <body>
 <div id="app">
-  <audio id="theme" src="theme.mp3" loop preload="auto"></audio>
+  <audio id="theme" src="music/monkeys-spinning-monkeys.mp3" loop preload="auto"></audio>
   <button id="musicFab" type="button" style="display:none;position:fixed;top:10px;right:10px;z-index:50;background:rgba(0,0,0,.6);color:#f3ead6;border:1px solid rgba(243,234,214,.4);border-radius:14px;padding:5px 11px;font-size:12px;letter-spacing:.06em">♪ On</button>
   <section class="screen on" id="splash">
     <video id="introVid" src="intro.mp4" poster="intro-poster.jpg" playsinline preload="auto" style="width:100%;max-height:100%;object-fit:contain;background:#000"></video>
@@ -394,6 +396,7 @@
       <li>Every so often a surprise card makes everyone drink.</li>
       <li>Coke or water is fine too. Drink responsibly.</li>
     </ul>
+    <p class="credit">Music: &ldquo;Monkeys Spinning Monkeys&rdquo; Kevin MacLeod (incompetech.com)<br>Licensed under Creative Commons: By Attribution 4.0 License<br><a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">http://creativecommons.org/licenses/by/4.0/</a></p>
     <button class="btn gold" id="rulesBack" style="margin-top:18px;flex-shrink:0">Back</button>
   </section>
 
